@@ -77,48 +77,7 @@ const App = ({ signOut }) => {
 
   return (
     <View className="App">
-      <Heading level={1} color="red">Nom Nom Next</Heading>
-      <View as="form" margin="3rem 0" onSubmit={createNote}>
-        <Flex direction="row" justifyContent="center">
-          <TextField
-            name="name"
-            placeholder="Searchbar placeholder"
-            label="Note Name"
-            labelHidden
-            variation="quiet"
-            required
-          />
-          <Button type="submit" variation="primary">
-            Search
-          </Button>
-        </Flex>
-      </View>
-      <Heading level={2}>"Recipes Placeholder"</Heading>
-      <View margin="3rem 0">
-        {notes.map((note) => (
-          <Flex
-          key={note.id || note.name}
-    direction="row"
-    justifyContent="center"
-    alignItems="center"
-  >
-    <Text as="strong" fontWeight={700}>
-      {note.name}
-    </Text>
-    <Text as="span">{note.description}</Text>
-    {note.image && (
-      <Image
-        src={note.image}
-        alt={`visual aid for ${notes.name}`}
-        style={{ width: 400 }}
-      />
-    )}
-    <Button variation="link" onClick={() => deleteNote(note)}>
-      Delete note
-    </Button>
-          </Flex>
-        ))}
-      </View>
+
       <Button onClick={signOut}>Sign Out</Button>
     </View>
     
