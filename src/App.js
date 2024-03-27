@@ -88,13 +88,7 @@ const App = ({ signOut }) => {
     }, []);
   return (
     <View className="App">
-      <div>
-      {username ? (
-        <p>Welcome, {username}!</p>
-      ) : (
-        <p>Loading...</p>
-        )}
-      </div>
+      <Heading level={1} color="red"> Welcome back {username}</Heading>
 
       <Button onClick={signOut}>Sign Out</Button>
     </View>
