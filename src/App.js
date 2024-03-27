@@ -75,8 +75,26 @@ const App = ({ signOut }) => {
     });
   }
 
+  const MyComponent = () => {
+    const [username, setUsername] = useState(null);
+  
+    useEffect(() => {
+      // Fetch the authenticated user's information when the component mounts
+      Auth.currentAuthenticatedUser()
+        .then(user => {
+          setUsername(user.username); // Set the username state variable
+        })
+        .catch(err => console.log('Error fetching user info: ', err));
+    }, []);
   return (
     <View className="App">
+      <div>
+      {username ? (
+        <p>Welcome, {username}!</p>
+      ) : (
+        <p>Loading...</p>
+        )}
+      </div>
 
       <Button onClick={signOut}>Sign Out</Button>
     </View>
