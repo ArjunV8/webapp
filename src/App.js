@@ -1,127 +1,111 @@
 import React, { useState, useEffect } from "react";
-import "./App.css";
-import "@aws-amplify/ui-react/styles.css";
-import {
-  Button,
-  Flex,
-  Heading,
-  Text,
-  TextField,
-  Image,
-  View,
-  withAuthenticator,
-} from "@aws-amplify/ui-react";
+import { Auth, API, graphqlOperation } from 'aws-amplify';
 import { listNotes } from "./graphql/queries";
-import {
-  createNote as createNoteMutation,
-  deleteNote as deleteNoteMutation,
-} from "./graphql/mutations";
-import { generateClient} from 'aws-amplify/api';
-import { uploadData, getUrl, remove } from 'aws-amplify/storage';
-
-
-const client = generateClient();
+import { createNote as createNoteMutation, deleteNote as deleteNoteMutation } from "./graphql/mutations";
+import { Button, Flex, Heading, Text, TextField, Image, View, withAuthenticator } from "@aws-amplify/ui-react";
 
 const App = ({ signOut }) => {
+  const [user, setUser] = useState(null);
   const [notes, setNotes] = useState([]);
 
   useEffect(() => {
+    Auth.currentAuthenticatedUser()
+      .then(user => setUser(user))
+      .catch(() => setUser(null));
     fetchNotes();
   }, []);
 
   async function fetchNotes() {
-    const apiData = await client.graphql({ query: listNotes });
-    const notesFromAPI = apiData.data.listNotes.items;
-    await Promise.all(
-      notesFromAPI.map(async (note) => {
-        if (note.image) {
-          const url = await getUrl({ key: note.name});
-          note.image = url.url;
-        }
-        return note;
-      })
-    );
-    setNotes(notesFromAPI);
+    try {
+      const apiData = await API.graphql(graphqlOperation(listNotes));
+      setNotes(apiData.data.listNotes.items);
+    } catch (error) {
+      console.error('Error fetching notes: ', error);
+    }
   }
 
   async function createNote(event) {
     event.preventDefault();
-    const form = new FormData(event.target);
-    const image = form.get("image");
-    const data = {
-      name: form.get("name"),
-      description: form.get("description"),
-      image: image.name,
+    const { name, description, image } = event.target.elements;
+    const currentUser = await Auth.currentAuthenticatedUser();
+    const inputData = {
+      name: name.value,
+      description: description.value,
+      image: image.files[0] ? image.files[0].name : null,
+      userId: currentUser.attributes.sub // Sub is the unique identifier of the user
     };
-    if (!!data.image) await uploadData({
-      key: data.name,
-      data: image
-    });
-    await client.graphql({
-      query: createNoteMutation,
-      variables: { input: data },
-    });
-    fetchNotes();
-    event.target.reset();
+    try {
+      await API.graphql(graphqlOperation(createNoteMutation, { input: inputData }));
+      if (inputData.image) {
+        await Storage.put(inputData.image, image.files[0]);
+      }
+      fetchNotes();
+      event.target.reset();
+    } catch (error) {
+      console.error('Error creating note: ', error);
+    }
   }
 
-  async function deleteNote({ id, name }) {
-    const newNotes = notes.filter((note) => note.id !== id);
-    setNotes(newNotes);
-    await remove({ key: name });
-    await client.graphql({
-      query: deleteNoteMutation,
-      variables: { input: { id } },
-    });
+  async function deleteNote({ id, image }) {
+    try {
+      await API.graphql(graphqlOperation(deleteNoteMutation, { input: { id } }));
+      if (image) {
+        await Storage.remove(image);
+      }
+      fetchNotes();
+    } catch (error) {
+      console.error('Error deleting note: ', error);
+    }
   }
 
   return (
     <View className="App">
-      <Heading level={1} color="red">Nom Nom Next</Heading>
-      <View as="form" margin="3rem 0" onSubmit={createNote}>
-        <Flex direction="row" justifyContent="center">
-          <TextField
-            name="name"
-            placeholder="Searchbar placeholder"
-            label="Note Name"
-            labelHidden
-            variation="quiet"
-            required
-          />
-          <Button type="submit" variation="primary">
-            Search
-          </Button>
-        </Flex>
-      </View>
-      <Heading level={2}>"Recipes Placeholder"</Heading>
+      <Heading level={1} color="red">Social Media App</Heading>
+      {user && (
+        <View as="form" margin="3rem 0" onSubmit={createNote}>
+          <Flex direction="row" justifyContent="center">
+            <TextField
+              name="name"
+              placeholder="Note Name"
+              label="Note Name"
+              labelHidden
+              variation="quiet"
+              required
+            />
+            <TextField
+              name="description"
+              placeholder="Description"
+              label="Description"
+              labelHidden
+              variation="quiet"
+            />
+            <input type="file" name="image" accept="image/*" />
+            <Button type="submit" variation="primary">
+              Create Note
+            </Button>
+          </Flex>
+        </View>
+      )}
       <View margin="3rem 0">
         {notes.map((note) => (
-          <Flex
-          key={note.id || note.name}
-    direction="row"
-    justifyContent="center"
-    alignItems="center"
-  >
-    <Text as="strong" fontWeight={700}>
-      {note.name}
-    </Text>
-    <Text as="span">{note.description}</Text>
-    {note.image && (
-      <Image
-        src={note.image}
-        alt={`visual aid for ${notes.name}`}
-        style={{ width: 400 }}
-      />
-    )}
-    <Button variation="link" onClick={() => deleteNote(note)}>
-      Delete note
-    </Button>
+          <Flex key={note.id} direction="column" justifyContent="center" alignItems="center">
+            <Text as="strong" fontWeight={700}>
+              {note.name}
+            </Text>
+            <Text as="span">{note.description}</Text>
+            {note.image && (
+              <Image src={note.image} alt={`visual aid for ${note.name}`} style={{ width: 400 }} />
+            )}
+            {user && user.attributes.sub === note.userId && (
+              <Button variation="link" onClick={() => deleteNote(note)}>
+                Delete note
+              </Button>
+            )}
           </Flex>
         ))}
       </View>
       <Button onClick={signOut}>Sign Out</Button>
     </View>
-    
   );
 };
 
