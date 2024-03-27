@@ -75,14 +75,6 @@ const App = ({ signOut }) => {
     });
   }
 
-  async function fetchUsername() {
-    try {
-      const user = await Auth.currentAuthenticatedUser();
-      setUsername(user.username); // Set the username state variable
-    } catch (error) {
-      console.error('Error fetching user info: ', error);
-    }
-  }
 
   return (
     <View className="App">
