@@ -86,7 +86,7 @@ const App = ({ signOut }) => {
 
   return (
     <View className="App">
-      <Heading level={1} color="red">Welcome back {username}</Heading>
+      <Heading level={1} color="red">Welcome back</Heading>
       <View as="form" margin="3rem 0" onSubmit={createNote}>
         <Flex direction="row" justifyContent="center">
           <TextField
