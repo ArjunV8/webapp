@@ -18,6 +18,7 @@ import {
 } from "./graphql/mutations";
 import { generateClient} from 'aws-amplify/api';
 import { uploadData, getUrl, remove } from 'aws-amplify/storage';
+import { Auth } from 'aws-amplify';
 
 
 const client = generateClient();
@@ -75,10 +76,18 @@ const App = ({ signOut }) => {
     });
   }
 
+  async function fetchUsername() {
+    try {
+      const user = await Auth.currentAuthenticatedUser();
+      setUsername(user.username); // Set the username state variable
+    } catch (error) {
+      console.error('Error fetching user info: ', error);
+    }
+  }
 
   return (
     <View className="App">
-      <Heading level={1} color="red">Welcome back</Heading>
+      <Heading level={1} color="red">Welcome back {username} </Heading>
       <View as="form" margin="3rem 0" onSubmit={createNote}>
         <Flex direction="row" justifyContent="center">
           <TextField
